@@ -1,16 +1,26 @@
-use dotenv;
-use reqwest::header::{HeaderMap, HeaderValue};
+use serde::Deserialize;
 use serde_json::json;
 
 type UnitResult = Result<(), Box<dyn std::error::Error>>;
 
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+struct PriceResponse {
+    #[serde(rename = "requestId")]
+    ticker: String,
+    #[serde(rename = "P_PRICE(-4D,0)")]
+    price: f64,
+    date: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ResponseWrapper {
+    data: Vec<PriceResponse>,
+}
+
 #[tokio::main]
 async fn main() -> UnitResult {
     dotenv::dotenv().ok();
-
-    let mut request_headers = HeaderMap::new();
-    request_headers.insert("Accept", HeaderValue::from_str("application/json").unwrap());
-    request_headers.insert("Content-Type", HeaderValue::from_str("application/json").unwrap());
 
     let request_data = json!({
         "data": {
@@ -22,18 +32,25 @@ async fn main() -> UnitResult {
     });
 
     let json_request = serde_json::to_string(&request_data).unwrap();
-    println!("JSON Request: {}", json_request);
 
     let client = reqwest::Client::new();
-    let res = client.post(dotenv::var("FACTSET_URI").unwrap())
-        .basic_auth(dotenv::var("FACTSET_UN").unwrap(), Some(dotenv::var("FACTSET_KEY").unwrap()))
+    let res = client
+        .post(dotenv::var("FACTSET_URI").unwrap())
+        .basic_auth(
+            dotenv::var("FACTSET_UN").unwrap(),
+            Some(dotenv::var("FACTSET_KEY").unwrap()),
+        )
         .body(json_request)
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
         .send()
         .await?;
 
-    println!("{:?}", res.text().await.unwrap());
+    let response_text = res.text().await.unwrap();
+
+    let response_wrapper: ResponseWrapper = serde_json::from_str(&response_text)?;
+    let response_data = response_wrapper.data;
+    println!("{:?}", response_data);
 
     Ok(())
 }
