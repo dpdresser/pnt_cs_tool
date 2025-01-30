@@ -1,6 +1,7 @@
 use reqwest::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 
 #[allow(dead_code)]
 #[derive(Debug, Deserialize)]
@@ -12,7 +13,6 @@ struct PriceResponse {
     date: String,
 }
 
-#[derive(Debug, Deserialize)]
 struct PriceResponseWrapper {
     data: Vec<PriceResponse>,
 }
@@ -41,6 +41,23 @@ async fn post_request(
     request_result.text().await
 }
 
+#[derive(Serialize)]
+struct CSModel {
+    id: [String; 1],
+    formulas: Vec<String>,
+    display_names: Vec<String>,
+}
+
+impl CSModel {
+    fn new(id: [String; 1], formulas: Vec<String>, display_names: Vec<String>) -> CSModel {
+        CSModel {
+            id,
+            formulas,
+            display_names,
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
@@ -52,20 +69,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = reqwest::Client::new();
 
+    let mut cs_models = BTreeMap::new();
+
+    // The following will be entered by a user
+    let id = "ABCB".to_string();
+    let formulas = vec!(
+        "FF_ARPT_HEADER(DATA_PER,QTR,0,0,,\"BS\")".to_string(),
+        "FF_ARPT_HEADER(FILE_DATE,QTR,0,0,,\"BS\")".to_string(),
+        "FF_COM_SHS_OUT(QTR_R,0,0,,RF,,M)".to_string(),
+        "FF_ARPT_SERIES(\"CASH AND CASH EQUIVALENTS\",QTR_R,0,0,M,\"BS\")".to_string(),
+        "FF_ARPT_SERIES(\"OTHER BORROWINGS\",QTR_R,0,0,M,\"BS\")".to_string(),
+        "FF_ARPT_SERIES(\"SUBORDINATED DEFERRABLE INTEREST DEBENTURES\",QTR_R,0,0,M,\"BS\")".to_string(),
+    );
+
+    let display_names = vec!(
+        "earnings_period".to_string(),
+        "earnings_release".to_string(),
+        "shares".to_string(),
+        "cash".to_string(),
+        "debt_other".to_string(),
+        "debt_subordinated".to_string(),
+    );
+
+    // Model generated and stored in BTreeMap
+    let model = CSModel::new([id.clone()], formulas, display_names);
+
+    cs_models.insert(id.clone(), model);
+
+    // Need macro to generate request value based cs model fields
+    // Something like: let request_date = generate_cs_model!(cs_models.get(&id));
     let request_data = json!({
         "data": {
-            "ids": ["SPY-US"],
-            "formulas": ["P_PRICE(-4D,0)"],
-            "calendar": "NAY",
-            "flatten": "Y"
+            "ids": [id.clone().push_str("-US")],
+            "formulas": cs_models.get(&id).unwrap().formulas,
+            "flatten": "Y",
+            "displayName": cs_models.get(&id).unwrap().display_names,
         }
     });
 
     let response_text = post_request(request_data, &fs_auth, client).await?;
-
-    let response_wrapper: PriceResponseWrapper = serde_json::from_str(&response_text)?;
-    let response_data = response_wrapper.data;
-    println!("{:?}", response_data);
+    // Need macro to generate ModelResponseWrapper and ResponseStruct for each ticker
+    // let response_wrapper: PriceResponseWrapper = serde_json::from_str(&response_text)?;
+    // let response_data = response_wrapper.data;
+    println!("{:?}", response_text);
 
     Ok(())
 }
