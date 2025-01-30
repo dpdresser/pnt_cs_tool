@@ -1,4 +1,4 @@
-use reqwest::{Client, Response};
+use reqwest::Client;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -13,7 +13,7 @@ struct PriceResponse {
 }
 
 #[derive(Debug, Deserialize)]
-struct ResponseWrapper {
+struct PriceResponseWrapper {
     data: Vec<PriceResponse>,
 }
 
@@ -27,16 +27,18 @@ async fn post_request(
     request_data: Value,
     fs_auth: &FactSetAuth,
     client: Client,
-) -> Result<Response, reqwest::Error> {
+) -> Result<String, reqwest::Error> {
     let json_request = serde_json::to_string(&request_data).unwrap();
-    client
+    let request_result = client
         .post(fs_auth.fs_url.clone())
         .basic_auth(fs_auth.fs_un.clone(), Some(fs_auth.fs_key.clone()))
         .body(json_request)
         .header("Accept", "application/json")
         .header("Content-Type", "application/json")
         .send()
-        .await
+        .await?;
+
+    request_result.text().await
 }
 
 #[tokio::main]
@@ -59,10 +61,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let res = post_request(request_data, &fs_auth, client).await?;
-    let response_text = res.text().await.unwrap();
+    let response_text = post_request(request_data, &fs_auth, client).await?;
 
-    let response_wrapper: ResponseWrapper = serde_json::from_str(&response_text)?;
+    let response_wrapper: PriceResponseWrapper = serde_json::from_str(&response_text)?;
     let response_data = response_wrapper.data;
     println!("{:?}", response_data);
 
