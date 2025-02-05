@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+crossbeam-channel = "0.5.14"
+dashmap = "6.1.0"
 dotenv = "0.15.0"
 eframe = "0.31"
 egui_extras = "0.31"

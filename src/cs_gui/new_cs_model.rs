@@ -1,5 +1,4 @@
-use super::app::NewCSModel;
-use crate::services::fs_api::{self, CSModelEntry};
+use crate::services::cs_model;
 
 use eframe::egui;
 use std::collections::BTreeMap;
@@ -7,8 +6,8 @@ use std::collections::BTreeMap;
 pub fn show_new_cs_model_window(
     ui: &mut egui::Ui,
     show_new_cs_model_window: &mut bool,
-    cs_models: &mut BTreeMap<String, Vec<fs_api::CSModelEntry>>,
-    new_cs_model: &mut NewCSModel,
+    cs_models: &mut BTreeMap<String, Vec<cs_model::CSModelEntry>>,
+    new_cs_model: &mut cs_model::AppNewCSModel,
 ) {
     ui.horizontal(|ui| {
         ui.label("Ticker for CS Model:\t");
@@ -27,27 +26,27 @@ pub fn show_new_cs_model_window(
             .show_ui(ui, |ui| {
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    fs_api::CSModelEntryType::Debt,
+                    cs_model::CSModelEntryType::Debt,
                     "Debt",
                 );
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    fs_api::CSModelEntryType::Preferred,
+                    cs_model::CSModelEntryType::Preferred,
                     "Preferred",
                 );
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    fs_api::CSModelEntryType::NonControllingInterest,
+                    cs_model::CSModelEntryType::NonControllingInterest,
                     "Noncontrolling Interest",
                 );
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    fs_api::CSModelEntryType::Cash,
+                    cs_model::CSModelEntryType::Cash,
                     "Cash",
                 );
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    fs_api::CSModelEntryType::Shares,
+                    cs_model::CSModelEntryType::Shares,
                     "Shares",
                 );
             });
@@ -62,7 +61,7 @@ pub fn show_new_cs_model_window(
 
     ui.horizontal(|ui| {
         if ui.button("Add").clicked() {
-            new_cs_model.entries.push(CSModelEntry {
+            new_cs_model.entries.push(cs_model::CSModelEntry {
                 formula: new_cs_model.formula.clone(),
                 entry_type: new_cs_model.entry_type,
                 display_name: new_cs_model.display_name.clone(),
@@ -77,9 +76,9 @@ pub fn show_new_cs_model_window(
     egui_extras::TableBuilder::new(ui)
         .striped(true)
         .resizable(true)
-        .column(egui_extras::Column::initial(100.0).resizable(true))
-        .column(egui_extras::Column::initial(100.0).resizable(true))
-        .column(egui_extras::Column::initial(100.0).resizable(true))
+        .column(egui_extras::Column::initial(200.0).resizable(false))
+        .column(egui_extras::Column::initial(200.0).resizable(false))
+        .column(egui_extras::Column::initial(200.0).resizable(false))
         .header(20.0, |mut header| {
             header.col(|ui| {
                 ui.strong("Formula");
@@ -111,7 +110,12 @@ pub fn show_new_cs_model_window(
 
     ui.horizontal(|ui| {
         if ui.button("Save").clicked() {
-            cs_models.insert(new_cs_model.ticker.clone(), new_cs_model.entries.clone());
+            let save_cs_model = cs_model::CSModel {
+                ticker: new_cs_model.ticker.clone(),
+                entries: new_cs_model.entries.clone(),
+            };
+            println!("{}", save_cs_model.db_string());
+            cs_models.insert(save_cs_model.ticker.clone(), save_cs_model.entries.clone());
         }
 
         if ui.button("Close").clicked() {

@@ -1,5 +1,5 @@
 use super::new_cs_model;
-use crate::services::fs_api;
+use crate::services::cs_model;
 
 use eframe::egui;
 use std::collections::BTreeMap;
@@ -7,8 +7,8 @@ use std::collections::BTreeMap;
 #[derive(Default)]
 pub struct MyEguiApp {
     show_new_cs_model_window: bool,
-    cs_models: BTreeMap<String, Vec<fs_api::CSModelEntry>>,
-    new_cs_model: NewCSModel,
+    cs_models: BTreeMap<String, Vec<cs_model::CSModelEntry>>,
+    new_cs_model: cs_model::AppNewCSModel,
 }
 
 impl MyEguiApp {
@@ -75,13 +75,4 @@ impl eframe::App for MyEguiApp {
             });
         };
     }
-}
-
-#[derive(Default)]
-pub struct NewCSModel {
-    pub ticker: String,
-    pub entries: Vec<fs_api::CSModelEntry>,
-    pub formula: String,
-    pub entry_type: fs_api::CSModelEntryType,
-    pub display_name: String,
 }

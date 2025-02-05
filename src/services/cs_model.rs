@@ -1,6 +1,6 @@
 // use reqwest::Client;
-// use serde::Serialize;
-// use serde_json::Value;
+use serde::{Deserialize, Serialize};
+use serde_json;
 
 pub struct FactSetAuth {
     pub fs_url: String,
@@ -8,7 +8,7 @@ pub struct FactSetAuth {
     pub fs_key: String,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Deserialize, Serialize)]
 pub enum CSModelEntryType {
     #[default]
     Debt,
@@ -18,8 +18,42 @@ pub enum CSModelEntryType {
     Shares,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CSModelEntry {
+    pub formula: String,
+    pub entry_type: CSModelEntryType,
+    pub display_name: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CSModel {
+    pub ticker: String,
+    pub entries: Vec<CSModelEntry>,
+}
+
+impl CSModel {
+    pub fn db_string(&self) -> String {
+        let entries_json: Vec<String> = self
+            .entries
+            .iter()
+            .map(|entry| serde_json::to_string(entry).unwrap())
+            .collect();
+
+        format!(
+            "INSERT INTO cs_models (ticker, entries)
+            VALUES ('{}', '{{{}}}'
+            ON CONFLICT (ticker)
+            DO UPDATE SET entries = EXCLUDED.entries",
+            self.ticker,
+            entries_json.join(", "),
+        )
+    }
+}
+
+#[derive(Default)]
+pub struct AppNewCSModel {
+    pub ticker: String,
+    pub entries: Vec<CSModelEntry>,
     pub formula: String,
     pub entry_type: CSModelEntryType,
     pub display_name: String,
