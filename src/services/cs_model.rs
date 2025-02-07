@@ -1,6 +1,5 @@
 // use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 pub struct FactSetAuth {
     pub fs_url: String,
@@ -39,8 +38,9 @@ impl CSModel {
             "INSERT INTO cs_models (ticker, entries)
             VALUES ('{}', '{}')
             ON CONFLICT (ticker)
-            DO UPDATE SET entries = EXCLUDED.entries",
+            DO UPDATE SET entries = '{}'",
             self.ticker,
+            entries_json,
             entries_json,
         )
     }

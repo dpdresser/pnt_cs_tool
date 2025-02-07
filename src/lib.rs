@@ -17,9 +17,9 @@ pub fn initialize_cs_models(
 
     for row in query_result {
         let ticker: String = row.get(0);
-        let entries_json: String = row.get(1);
+        let entries_json: serde_json::Value = row.get(1);
 
-        let entries: Vec<CSModelEntry> = serde_json::from_str(&entries_json)?;
+        let entries: Vec<CSModelEntry> = serde_json::from_value(entries_json)?;
 
         let cs_model = CSModel { ticker, entries };
 
