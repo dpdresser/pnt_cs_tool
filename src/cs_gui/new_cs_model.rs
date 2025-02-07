@@ -79,6 +79,7 @@ pub fn show_new_cs_model_window(
         .column(egui_extras::Column::initial(200.0).resizable(false))
         .column(egui_extras::Column::initial(200.0).resizable(false))
         .column(egui_extras::Column::initial(200.0).resizable(false))
+        .column(egui_extras::Column::initial(50.0).resizable(false))
         .header(20.0, |mut header| {
             header.col(|ui| {
                 ui.strong("Formula");
@@ -89,9 +90,12 @@ pub fn show_new_cs_model_window(
             header.col(|ui| {
                 ui.strong("Display Name");
             });
+            header.col(|ui| {
+                ui.strong("Remove");
+            });
         })
         .body(|mut body| {
-            for entry in &*new_cs_model.entries {
+            for (i, entry) in new_cs_model.entries.clone().iter().enumerate() {
                 body.row(20.0, |mut row| {
                     row.col(|ui| {
                         ui.label(&entry.formula);
@@ -101,6 +105,11 @@ pub fn show_new_cs_model_window(
                     });
                     row.col(|ui| {
                         ui.label(&entry.formula);
+                    });
+                    row.col(|ui| {
+                        if ui.button("X").clicked() {
+                            new_cs_model.entries.remove(i);
+                        }
                     });
                 });
             }
