@@ -1,10 +1,10 @@
-use postgres::{Client, Row};
-use std::error::Error;
+use postgres::{Client, Error, Row};
 
-pub fn load_cs_models(db_client: &mut Client) -> Result<Vec<Row>, Box<dyn Error>> {
-    let query = "SELECT * FROM cs_models"; 
-    match db_client.query(query, &[]) {
-        Ok(rows) => Ok(rows),
-        Err(e) => return Err(format!("Error reading from PostgreSQL database: {:?}", e).into()),
-    }
+pub fn load_cs_models(db_client: &mut Client) -> Result<Vec<Row>, Error> {
+    let query = "SELECT * FROM cs_models";
+    db_client.query(query, &[])
+}
+
+pub fn save_cs_model(db_client: &mut Client, query: &str) -> Result<u64, Error> {
+    db_client.execute(query, &[])
 }

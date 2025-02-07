@@ -1,20 +1,32 @@
 use super::new_cs_model;
-use crate::services::cs_model;
+use crate::services::cs_model::{AppNewCSModel, CSModel};
 
+use crossbeam_channel::Sender;
+use dashmap::DashMap;
 use eframe::egui;
-use std::collections::BTreeMap;
+use std::sync::Arc;
 
-#[derive(Default)]
 pub struct MyEguiApp {
     show_new_cs_model_window: bool,
-    cs_models: BTreeMap<String, Vec<cs_model::CSModelEntry>>,
-    new_cs_model: cs_model::AppNewCSModel,
+    cs_models: Arc<DashMap<String, CSModel>>,
+    new_cs_model: AppNewCSModel,
+    cs_model_tx: Arc<Sender<CSModel>>,
 }
 
 impl MyEguiApp {
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(
+        cc: &eframe::CreationContext<'_>,
+        cs_models: Arc<DashMap<String, CSModel>>,
+        cs_model_tx: Arc<Sender<CSModel>>,
+    ) -> Self {
         cc.egui_ctx.set_visuals(egui::Visuals::dark());
-        Self::default()
+
+        Self {
+            show_new_cs_model_window: false,
+            cs_models,
+            new_cs_model: AppNewCSModel::default(),
+            cs_model_tx,
+        }
     }
 }
 
@@ -51,7 +63,8 @@ impl eframe::App for MyEguiApp {
                     });
                 })
                 .body(|mut body| {
-                    for (ticker, model) in &self.cs_models {
+                    for row in self.cs_models.iter() {
+                        let (ticker, model) = (row.key(), row.value());
                         body.row(20.0, |mut row| {
                             row.col(|ui| {
                                 ui.label(ticker);
@@ -69,8 +82,9 @@ impl eframe::App for MyEguiApp {
                 new_cs_model::show_new_cs_model_window(
                     ui,
                     &mut self.show_new_cs_model_window,
-                    &mut self.cs_models,
+                    self.cs_models.clone(),
                     &mut self.new_cs_model,
+                    self.cs_model_tx.clone(),
                 )
             });
         };

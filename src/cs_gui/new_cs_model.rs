@@ -1,13 +1,16 @@
-use crate::services::cs_model;
+use crate::services::cs_model::{AppNewCSModel, CSModel, CSModelEntry, CSModelEntryType};
 
+use crossbeam_channel::Sender;
+use dashmap::DashMap;
 use eframe::egui;
-use std::collections::BTreeMap;
+use std::sync::Arc;
 
 pub fn show_new_cs_model_window(
     ui: &mut egui::Ui,
     show_new_cs_model_window: &mut bool,
-    cs_models: &mut BTreeMap<String, Vec<cs_model::CSModelEntry>>,
-    new_cs_model: &mut cs_model::AppNewCSModel,
+    cs_models: Arc<DashMap<String, CSModel>>,
+    new_cs_model: &mut AppNewCSModel,
+    cs_model_tx: Arc<Sender<CSModel>>,
 ) {
     ui.horizontal(|ui| {
         ui.label("Ticker for CS Model:\t");
@@ -24,29 +27,21 @@ pub fn show_new_cs_model_window(
         egui::ComboBox::from_id_salt("Type")
             .selected_text(format!("{:?}", &new_cs_model.entry_type))
             .show_ui(ui, |ui| {
+                ui.selectable_value(&mut new_cs_model.entry_type, CSModelEntryType::Debt, "Debt");
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    cs_model::CSModelEntryType::Debt,
-                    "Debt",
-                );
-                ui.selectable_value(
-                    &mut new_cs_model.entry_type,
-                    cs_model::CSModelEntryType::Preferred,
+                    CSModelEntryType::Preferred,
                     "Preferred",
                 );
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    cs_model::CSModelEntryType::NonControllingInterest,
+                    CSModelEntryType::NonControllingInterest,
                     "Noncontrolling Interest",
                 );
+                ui.selectable_value(&mut new_cs_model.entry_type, CSModelEntryType::Cash, "Cash");
                 ui.selectable_value(
                     &mut new_cs_model.entry_type,
-                    cs_model::CSModelEntryType::Cash,
-                    "Cash",
-                );
-                ui.selectable_value(
-                    &mut new_cs_model.entry_type,
-                    cs_model::CSModelEntryType::Shares,
+                    CSModelEntryType::Shares,
                     "Shares",
                 );
             });
@@ -61,7 +56,7 @@ pub fn show_new_cs_model_window(
 
     ui.horizontal(|ui| {
         if ui.button("Add").clicked() {
-            new_cs_model.entries.push(cs_model::CSModelEntry {
+            new_cs_model.entries.push(CSModelEntry {
                 formula: new_cs_model.formula.clone(),
                 entry_type: new_cs_model.entry_type,
                 display_name: new_cs_model.display_name.clone(),
@@ -119,12 +114,12 @@ pub fn show_new_cs_model_window(
 
     ui.horizontal(|ui| {
         if ui.button("Save").clicked() {
-            let save_cs_model = cs_model::CSModel {
+            let save_cs_model = CSModel {
                 ticker: new_cs_model.ticker.clone(),
                 entries: new_cs_model.entries.clone(),
             };
-            println!("{}", save_cs_model.db_string());
-            cs_models.insert(save_cs_model.ticker.clone(), save_cs_model.entries.clone());
+            cs_models.insert(save_cs_model.ticker.clone(), save_cs_model.clone());
+            let _ = cs_model_tx.send(save_cs_model.clone());
         }
 
         if ui.button("Close").clicked() {

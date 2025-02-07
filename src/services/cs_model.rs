@@ -25,7 +25,7 @@ pub struct CSModelEntry {
     pub display_name: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CSModel {
     pub ticker: String,
     pub entries: Vec<CSModelEntry>,
@@ -33,19 +33,15 @@ pub struct CSModel {
 
 impl CSModel {
     pub fn db_string(&self) -> String {
-        let entries_json: Vec<String> = self
-            .entries
-            .iter()
-            .map(|entry| serde_json::to_string(entry).unwrap())
-            .collect();
+        let entries_json: String = serde_json::to_string(&self.entries).unwrap();
 
         format!(
             "INSERT INTO cs_models (ticker, entries)
-            VALUES ('{}', '{{{}}}'
+            VALUES ('{}', '{}')
             ON CONFLICT (ticker)
             DO UPDATE SET entries = EXCLUDED.entries",
             self.ticker,
-            entries_json.join(", "),
+            entries_json,
         )
     }
 }
